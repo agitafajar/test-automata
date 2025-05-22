@@ -18,11 +18,13 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [search, setSearch] = useState("");
   const [activePlayerId, setActivePlayerId] = useState<number>(1);
-  const [visibleCount, setVisibleCount] = useState<number>(20); // awal 20 (10 tombol + 10 list)
+  const [visibleCount, setVisibleCount] = useState<number>(20);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchPlayers() {
-      const res = await fetch("https://randomuser.me/api/?results=100"); // ambil lebih banyak untuk scroll
+      setIsLoading(true);
+      const res = await fetch("https://randomuser.me/api/?results=1000");
       const data = await res.json();
 
       const mapped = data.results.map((user: any, index: number) => ({
@@ -34,13 +36,24 @@ export default function PlayersPage() {
       }));
 
       setPlayers(mapped);
+      setIsLoading(false);
     }
 
     fetchPlayers();
   }, []);
 
-  // Tambah pemain saat scroll bawah
+  const filtered = players.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const visiblePlayers = filtered.slice(10, visibleCount);
+
+  const activePlayer =
+    filtered.find((p) => p.id === activePlayerId) || filtered[0];
+
   useEffect(() => {
+    if (!players.length) return;
+
     function handleScroll() {
       const scrollTop = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -53,14 +66,15 @@ export default function PlayersPage() {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [players, search]);
+  }, [filtered.length, players.length]);
 
-  const filtered = players.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const activePlayer =
-    filtered.find((p) => p.id === activePlayerId) || filtered[0];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -71,7 +85,7 @@ export default function PlayersPage() {
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setVisibleCount(20); // reset saat search
+            setVisibleCount(20);
           }}
           className="w-full border rounded-lg py-2 px-4 pr-10 text-sm mr-3 border-gray-400"
         />
@@ -125,7 +139,7 @@ export default function PlayersPage() {
       </div>
 
       <div>
-        {filtered.slice(10, visibleCount).map((player, index) => {
+        {visiblePlayers.map((player, index) => {
           const globalIndex = index + 10;
           const isShortPadding = globalIndex >= 20;
 
@@ -135,22 +149,22 @@ export default function PlayersPage() {
               className="flex items-center justify-between rounded-lg bg-[#F2F2F2] mb-2"
             >
               <div
-                className={`flex items-center  p-3 ${
+                className={`flex items-center p-3 ${
                   isShortPadding ? "py-3 gap-4" : "py-10 gap-16"
                 }`}
               >
                 <div
-                  className={` text-[#2E55CE] w-6 ${
+                  className={`text-[#2E55CE] w-6 ${
                     isShortPadding ? "text-2xl" : "text-4xl"
                   }`}
                 >
                   {player.id}
                 </div>
-                <div className="flex items-center gap-2 ">
+                <div className="flex items-center gap-2">
                   <img
                     src={player.image}
                     alt={player.name}
-                    className={` rounded-full h-10 w-10 mr-2 ${
+                    className={`rounded-full h-10 w-10 mr-2 ${
                       isShortPadding ? "" : "hidden"
                     }`}
                   />
@@ -175,7 +189,7 @@ export default function PlayersPage() {
               <img
                 src={player.image}
                 alt={player.name}
-                className={` rounded-r-lg h-[140px] w-[120px] ${
+                className={`rounded-r-lg h-[140px] w-[120px] ${
                   isShortPadding ? "hidden" : ""
                 }`}
               />
